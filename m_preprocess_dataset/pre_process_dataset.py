@@ -15,7 +15,7 @@ from pose import get_rotation_angle
 Dataset_DF = pd.DataFrame(columns=["age", "gender", "image", "org_box", "trible_box", "landmarks", "roll", "yaw", "pitch"])
 #initiate face detector and predictor
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor("/content/C3AE/detect/shape_predictor_68_face_landmarks.dat")
+predictor = dlib.shape_predictor("/content/RP/detect/shape_predictor_68_face_landmarks.dat")
 
 def gen_boundbox(box, landmark):
     # getting 3 boxes for face, as required in paper... i.e feed 3 different sized images to network (R,G,B) 
@@ -176,7 +176,7 @@ class Process_WIKI_IMDB():
 
 if __name__ == "__main__":
   # define all parameters here
-  dataset_directory_path = '/content/C3AE/dataset/imdb_crop'
+  dataset_directory_path = '/content/RP/dataset/imdb_crop'
   dataset_name = 'imdb' # different dataset name means different sequence for loading etc
 
   # image transform params (if require)

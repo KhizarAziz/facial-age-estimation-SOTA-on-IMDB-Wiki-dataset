@@ -264,11 +264,11 @@ class Process_WIKI_IMDB():
 Dataset_DF = pd.DataFrame(columns=["age", "gender", "image", "org_box", "trible_box", "landmarks", "roll", "yaw", "pitch"])
 #initiate face detector and predictor
 # detector = dlib.get_frontal_face_detector()
-detector = dlib.cnn_face_detection_model_v1('/content/C3AE/detect/mmod_human_face_detector.dat')
-predictor = dlib.shape_predictor("/content/C3AE/detect/shape_predictor_68_face_landmarks.dat")
+detector = dlib.cnn_face_detection_model_v1('/content/RP/detect/mmod_human_face_detector.dat')
+predictor = dlib.shape_predictor("/content/RP/detect/shape_predictor_68_face_landmarks.dat")
 
 # define all parameters here
-dataset_directory_path = '/content/C3AE/dataset/wiki_crop/'
+dataset_directory_path = '/content/RP/dataset/wiki_crop/'
 dataset_name = 'wiki' # different dataset name means different sequence for loading etc
 # image transform params (if require)
 extra_padding = 0.55
