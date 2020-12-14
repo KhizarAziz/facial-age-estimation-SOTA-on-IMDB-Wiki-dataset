@@ -31,7 +31,7 @@ def get_margin_right_left(landmarks,gap_margin):
   left_margin = round(gap_margin * percent_left/100)
   #confirmation of left+right == total_margin
   right_margin = gap_margin-left_margin
-  return left_margin,right_margin
+  return right_margin,left_margin
 
 def get_margin_up_down_split(gap_margin,down_split=0.3):
   # calculate margin values for up & down side.
@@ -41,8 +41,30 @@ def get_margin_up_down_split(gap_margin,down_split=0.3):
   return up_margin,down_margin
 
 
+def evaluate_face_box(x1,y1,x2,y2,landmarks):
+  left_lm = landmarks[17][0] # left side of face
+  right_lm = landmarks[26][0] # right side of face
+  top_lm = landmarks[24][1] # top side of face
+  down_lm = landmarks[57][1] # bottom side of face
+  
+  
+  if (left_lm < x1) or (right_lm > x2):
+    avg_offset_h = int (((x1 - left_lm) + (x2 - right_lm))/2)
+    x1 -= avg_offset_h
+    x2 -= avg_offset_h
+
+  if (top_lm < y1) or (down_lm > y2):
+    avg_offset_v = int (((y1 - top_lm) + (y2 - down_lm))/2)
+    y1 -= avg_offset_v
+    y2 -= avg_offset_v
+
+  return x1,y1,x2,y2
+
+
+
 def gen_triple_face_box(box,landmarks,percent_margin=30):
   xmin, ymin, xmax, ymax = box 
+  xmin, ymin, xmax, ymax = xmin-8, ymin-8, xmax-8, ymax-8
   h = xmax - xmin
   #calculate gap value for bigger box
   gap_margin = round(h * percent_margin/100)
@@ -55,6 +77,7 @@ def gen_triple_face_box(box,landmarks,percent_margin=30):
   new_Y = int(ymin - up_margin)
   new_X2 = int(xmax + right_margin)
   new_Y2 = int(ymax + down_margin)
+  new_X,new_Y,new_X2,new_Y2 = evaluate_face_box(new_X,new_Y,new_X2,new_Y2,landmarks)
   box_array.append([(new_X,new_Y),(new_X2,new_Y2)])
   # outer box
   gap_margin = gap_margin*2 # because 3rd box will be further outside
@@ -64,11 +87,9 @@ def gen_triple_face_box(box,landmarks,percent_margin=30):
   new_Y = int(ymin - up_margin)
   new_X2 =int(xmax + right_margin)
   new_Y2 =int(ymax + down_margin)
+  new_X,new_Y,new_X2,new_Y2 = evaluate_face_box(new_X,new_Y,new_X2,new_Y2,landmarks)
   box_array.append([(new_X,new_Y),(new_X2,new_Y2)])
   return np.array(box_array) 
-
-
-
 
 def two_point(age_label, category, interval=10, elips=0.000001):
     def age_split(age):
@@ -94,7 +115,7 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   # get trible box (out,middle,inner) and crop image from these boxes then
   face_lm = pickle.loads(row['landmarks'],encoding="bytes")
   face_box = pickle.loads(row['org_box'],encoding="bytes")
-  triple_box= gen_triple_face_box(face_box,face_lm,percent_margin=45)
+  triple_box= gen_triple_face_box(face_box,face_lm,percent_margin=-15)
 
   #if contains a negative value, add padding to image.
   if triple_box.min() < 0:
