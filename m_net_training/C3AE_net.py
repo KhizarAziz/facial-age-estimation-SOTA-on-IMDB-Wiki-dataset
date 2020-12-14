@@ -128,8 +128,8 @@ def CBTM(inputs):
 def PB(inputs):
   # s_layer2_mix = Flatten()(inputs)
   s_layer2_mix = GlobalAveragePooling2D()(inputs)
-  s_layer2_mix = Dropout(0.2)(s_layer2_mix)
   s_layer2_mix = Dense(12,activation='relu',activity_regularizer=regularizers.l1(0))(s_layer2_mix)
+  s_layer2_mix = Dropout(0.3)(s_layer2_mix)
   s_layer2_mix = Dense(3,activation='relu')(s_layer2_mix)
   return s_layer2_mix
 
@@ -189,5 +189,6 @@ def build_model(Categories=12, input_height=64, input_width=64, input_channels=3
 
   cfeat = Concatenate(axis=-1)([y1, y2,y3])
   bulk_feat = Dense(Categories, use_bias=True, activity_regularizer=regularizers.l1(0), activation='softmax', name="W1")(cfeat)
-  age = Dense(1, name="age")(bulk_feat)  
+  m = Dropout(0.2)(bulk_feat)
+  age = Dense(1, name="age")(m)  
   return Model(inputs=[x1,x2,x3], outputs=[age, bulk_feat])

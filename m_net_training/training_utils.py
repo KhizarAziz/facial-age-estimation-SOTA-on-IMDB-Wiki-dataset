@@ -3,6 +3,7 @@ import cv2
 import pickle
 import random
 import keras.backend as K
+import matplotlib.pyplot as plt
 
 # adding random box in image with random colored pixels, it makes model generic????
 def random_img_erasing(img, dropout=0.3, aspect=(0.5, 2), area=(0.06, 0.10)):
@@ -60,11 +61,9 @@ def evaluate_face_box(x1,y1,x2,y2,landmarks):
 
   return x1,y1,x2,y2
 
-
-
 def gen_triple_face_box(box,landmarks,percent_margin=30):
   xmin, ymin, xmax, ymax = box 
-  xmin, ymin, xmax, ymax = xmin-8, ymin-8, xmax-8, ymax-8
+  xmin, ymin, xmax, ymax = xmin-5, ymin-5, xmax+5, ymax+5
   h = xmax - xmin
   #calculate gap value for bigger box
   gap_margin = round(h * percent_margin/100)
@@ -109,40 +108,75 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   # read image from buffer then decode
   img = np.frombuffer(row["image"], np.uint8)
   img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-  #add random noise
-  if random_erasing:
-    img = random_img_erasing(img,dropout=dropout)
+
+  # normalize to the range 0-1
+  # img = img.astype('float32')
+  # img = img/255.0
+  # centering images (centering then normlizing make it center around 0.5)
+  # centering images (centering before normlizing make it center around 0 (distributed around pos, neg): better for training but not for display images)
+  # global_mean = img.mean()
+  # img -= global_mean
+  # local_mean => calculated mean for separated channels and centering each around it's mean
+    # loval_mean = pixels.mean(axis=(0,1), dtype='float64')
+    # img -= global_mean
+
+  #STANDARDIZATION (preferred)
+  # means = img.mean(axis=(0,1), dtype='float64') # mean of separate channels
+  # stds = img.std(axis=(0,1), dtype='float64') # std of separate channels
+  # img = (img - means) / stds
+
   # get trible box (out,middle,inner) and crop image from these boxes then
   face_lm = pickle.loads(row['landmarks'],encoding="bytes")
   face_box = pickle.loads(row['org_box'],encoding="bytes")
-  triple_box= gen_triple_face_box(face_box,face_lm,percent_margin=-15)
+  triple_box= gen_triple_face_box(face_box,face_lm,percent_margin=-10)
 
   #if contains a negative value, add padding to image.
-  if triple_box.min() < 0:
-    padding = np.abs(triple_box.min()) + 1
-  else:
-    padding = 0
+  # if triple_box.min() < 0:
+  #   padding = np.abs(triple_box.min()) + 1
+  # else:
+  padding = 0
   
   img = cv2.copyMakeBorder(img, padding, padding, padding, padding, cv2.BORDER_CONSTANT)
   tripple_cropped_imgs = []
+  # rr  = random.randint(0, 200)
+  img_new = img.copy()
   # for box in pickle.loads(row['trible_box'],encoding="bytes"): # deserializing object which we converted to binary format using myNumArray.dump() method
   for box in triple_box: # deserializing object which we converted to binary format using myNumArray.dump() method
-    h_min, w_min = box[0] # xmin,ymin
+    h_min, w_min = box[0] #xmin, ymin
     h_max, w_max = box[1] #xmax, ymax
     # print('img shape {} & trible box {} '.format(img.shape,box))
     # crop image according to box size and add to list
-    triple_box_cropped = img[w_min+padding:w_max+padding, h_min+padding: h_max+padding] # cropping image
-    triple_box_cropped = cv2.resize(triple_box_cropped, target_img_shape) # resize according to size we want
+    triple_box_cropped = cv2.resize(img_new[w_min+padding:w_max+padding, h_min+padding: h_max+padding], target_img_shape) # cropping image
+    # triple_box_cropped = triple_box_cropped # resize according to size we want
     tripple_cropped_imgs.append(triple_box_cropped)
-    #image augmentaion (hue, contrast,rotation etc) if needed
+  
+  # list of [image_path,age]
+  # f,axarr = plt.subplots(nrows=1,ncols=3,figsize=(10,10))
+  # for i in range(3):
+  #     m = tripple_cropped_imgs[i].copy()
+  #     axarr[i].imshow(m)
+  # f.savefig("/content/my_gen/{}-{}.jpg".format(row['age'],rr))
+
+  # tripple_cropped_imgs = []
+  # img_new = img.copy()
+  # for box in pickle.loads(row['trible_box'],encoding="bytes"): # deserializing object which we converted to binary format using myNumArray.dump() method
+  # # for box in triple_box: # deserializing object which we converted to binary format using myNumArray.dump() method
+  #   h_min, w_min = box[0] # xmin,ymin
+  #   h_max, w_max = box[1] #xmax, ymax
+  #   # print('img shape {} & trible box {} '.format(img.shape,box))
+  #   # crop image according to box size and add to list
+  #   triple_box_cropped = cv2.resize(img_new[w_min+padding:w_max+padding, h_min+padding: h_max+padding], target_img_shape) # cropping image
+  #   # triple_box_cropped = cv2.resize(triple_box_cropped, target_img_shape) # resize according to size we want
+  #   tripple_cropped_imgs.append(triple_box_cropped)  
+
+  # # list of [image_path,age]
+  # f,axarr = plt.subplots(nrows=1,ncols=3,figsize=(10,10))
+  # for i in range(3):
+  #     m = tripple_cropped_imgs[i].copy()
+  #     axarr[i].imshow(m)
+  # f.savefig("/content/his_gen/{}-{}.jpg".format(row['age'],rr))
+
   cascad_imgs = np.array(tripple_cropped_imgs)
-  if random_erasing:
-      flag = random.randint(0, 3)
-      contrast = random.uniform(0.5, 2.5)
-      bright = random.uniform(-50, 50)
-      rotation = random.randint(-15, 215)
-      cascad_imgs = [image_enforcing(x, flag, contrast, bright, rotation) for x in cascad_imgs]
-       
   return cascad_imgs    
 
 
