@@ -63,12 +63,28 @@ def evaluate_face_box(x1,y1,x2,y2,landmarks):
 
 def gen_triple_face_box(box,landmarks,percent_margin=30):
   xmin, ymin, xmax, ymax = box 
-  xmin, ymin, xmax, ymax = xmin-5, ymin-5, xmax+5, ymax+5
   h = xmax - xmin
   #calculate gap value for bigger box
   gap_margin = round(h * percent_margin/100)
+  
   # inner-box
+  right_margin,left_margin = get_margin_right_left(landmarks,-gap_margin) # calculate gap_margin right and left
+  if right_margin > left_margin:
+    right_margin += left_margin
+    left_margin = 0
+  else:
+    left_margin += right_margin
+    right_margin = 0
+  up_margin , down_margin  = get_margin_up_down_split(-gap_margin,0.5)
+  xmin =  int(xmin - left_margin)
+  ymin = int(ymin - up_margin)
+  xmax = int(xmax + right_margin)
+  ymax = int(ymax + down_margin)
+  xmin, ymin, xmax, ymax = evaluate_face_box(xmin, ymin, xmax, ymax,landmarks)
+  # box_array.append([(new_X,new_Y),(new_X2,new_Y2)])
+  # xmin, ymin, xmax, ymax = xmin-5, ymin-5, xmax+5, ymax+5
   box_array = [[(xmin,ymin),(xmax,ymax)]]
+  
   # middle box
   left_margin,right_margin = get_margin_right_left(landmarks,gap_margin) # calculate gap_margin right and left
   up_margin , down_margin  = get_margin_up_down_split(gap_margin)
@@ -134,7 +150,7 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   # if triple_box.min() < 0:
   #   padding = np.abs(triple_box.min()) + 1
   # else:
-  padding = 0
+  padding = 20
   
   img = cv2.copyMakeBorder(img, padding, padding, padding, padding, cv2.BORDER_CONSTANT)
   tripple_cropped_imgs = []
@@ -150,12 +166,12 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
     # triple_box_cropped = triple_box_cropped # resize according to size we want
     tripple_cropped_imgs.append(triple_box_cropped)
   
-  # list of [image_path,age]
+  # # list of [image_path,age]
   # f,axarr = plt.subplots(nrows=1,ncols=3,figsize=(10,10))
   # for i in range(3):
   #     m = tripple_cropped_imgs[i].copy()
   #     axarr[i].imshow(m)
-  # f.savefig("/content/my_gen/{}-{}.jpg".format(row['age'],rr))
+  # # f.savefig("/content/my_gen/{}-{}.jpg".format(row['age'],rr))
 
   # tripple_cropped_imgs = []
   # img_new = img.copy()
