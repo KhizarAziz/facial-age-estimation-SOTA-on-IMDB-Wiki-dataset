@@ -42,19 +42,19 @@ def get_margin_up_down_split(gap_margin,down_split=0.3):
   return up_margin,down_margin
 
 
-def evaluate_face_box(x1,y1,x2,y2,landmarks):
+def evaluate_face_box(x1,y1,x2,y2,landmarks, force_align =False):
   left_lm = landmarks[17][0] # left side of face
   right_lm = landmarks[26][0] # right side of face
   top_lm = landmarks[24][1] # top side of face
   down_lm = landmarks[57][1] # bottom side of face
   
   
-  if (left_lm < x1) or (right_lm > x2):
+  if (left_lm < x1) or (right_lm > x2) or force_align:
     avg_offset_h = int (((x1 - left_lm) + (x2 - right_lm))/2)
     x1 -= avg_offset_h
     x2 -= avg_offset_h
 
-  if (top_lm < y1) or (down_lm > y2):
+  if (top_lm < y1) or (down_lm > y2) or force_align:
     avg_offset_v = int (((y1 - top_lm) + (y2 - down_lm))/2)
     y1 -= avg_offset_v
     y2 -= avg_offset_v
@@ -68,21 +68,10 @@ def gen_triple_face_box(box,landmarks,percent_margin=30):
   gap_margin = round(h * percent_margin/100)
   
   # inner-box
-  right_margin,left_margin = get_margin_right_left(landmarks,-gap_margin) # calculate gap_margin right and left
-  if right_margin > left_margin:
-    right_margin += left_margin
-    left_margin = 0
-  else:
-    left_margin += right_margin
-    right_margin = 0
-  up_margin , down_margin  = get_margin_up_down_split(-gap_margin,0.5)
-  xmin =  int(xmin - left_margin)
-  ymin = int(ymin - up_margin)
-  xmax = int(xmax + right_margin)
-  ymax = int(ymax + down_margin)
-  xmin, ymin, xmax, ymax = evaluate_face_box(xmin, ymin, xmax, ymax,landmarks)
-  # box_array.append([(new_X,new_Y),(new_X2,new_Y2)])
-  # xmin, ymin, xmax, ymax = xmin-5, ymin-5, xmax+5, ymax+5
+  left_margin,right_margin = get_margin_right_left(landmarks,gap_margin)
+  if  0.66 < left_margin/right_margin < 1.55:
+    xmin, ymin, xmax, ymax = evaluate_face_box(xmin, ymin, xmax, ymax, landmarks,force_align=True) 
+  xmin, ymin, xmax, ymax = xmin-5, ymin-5, xmax+5, ymax+5
   box_array = [[(xmin,ymin),(xmax,ymax)]]
   
   # middle box
