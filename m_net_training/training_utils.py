@@ -69,9 +69,11 @@ def gen_triple_face_box(box,landmarks,percent_margin=30):
   
   # inner-box
   left_margin,right_margin = get_margin_right_left(landmarks,gap_margin)
-  if  0.66 < left_margin/right_margin < 1.55:
-    xmin, ymin, xmax, ymax = evaluate_face_box(xmin, ymin, xmax, ymax, landmarks,force_align=True) 
-  xmin, ymin, xmax, ymax = xmin-5, ymin-5, xmax+5, ymax+5
+  # print(left_margin,right_margin)
+  if right_margin != 0:
+    if 0.66 < left_margin/right_margin < 1.55:
+      xmin, ymin, xmax, ymax = evaluate_face_box(xmin, ymin, xmax, ymax, landmarks,force_align=True) 
+  # xmin, ymin, xmax, ymax = xmin, ymin, xmax, ymax
   box_array = [[(xmin,ymin),(xmax,ymax)]]
   
   # middle box
@@ -114,6 +116,11 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   img = np.frombuffer(row["image"], np.uint8)
   img = cv2.imdecode(img, cv2.IMREAD_COLOR)
 
+
+  #add random noise	
+  if random_erasing:	  # normalize to the range 0-1
+    img = random_img_erasing(img,dropout=dropout)
+
   # normalize to the range 0-1
   # img = img.astype('float32')
   # img = img/255.0
@@ -126,9 +133,9 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
     # img -= global_mean
 
   #STANDARDIZATION (preferred)
-  # means = img.mean(axis=(0,1), dtype='float64') # mean of separate channels
-  # stds = img.std(axis=(0,1), dtype='float64') # std of separate channels
-  # img = (img - means) / stds
+  means = img.mean(axis=(0,1), dtype='float64') # mean of separate channels
+  stds = img.std(axis=(0,1), dtype='float64') # std of separate channels
+  img = (img - means) / stds
 
   # get trible box (out,middle,inner) and crop image from these boxes then
   face_lm = pickle.loads(row['landmarks'],encoding="bytes")
@@ -182,6 +189,13 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   # f.savefig("/content/his_gen/{}-{}.jpg".format(row['age'],rr))
 
   cascad_imgs = np.array(tripple_cropped_imgs)
+  if random_erasing:	
+      flag = random.randint(0, 3)	
+      contrast = random.uniform(0.5, 2.5)	
+      bright = random.uniform(-50, 50)	
+      rotation = random.randint(-15, 215)	
+      cascad_imgs = [image_enforcing(x, flag, contrast, bright, rotation) for x in cascad_imgs]
+
   return cascad_imgs    
 
 
