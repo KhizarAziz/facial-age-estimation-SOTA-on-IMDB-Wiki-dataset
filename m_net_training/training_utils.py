@@ -73,7 +73,7 @@ def gen_triple_face_box(box,landmarks,percent_margin=30):
   if right_margin != 0:
     if 0.66 < left_margin/right_margin < 1.55:
       xmin, ymin, xmax, ymax = evaluate_face_box(xmin, ymin, xmax, ymax, landmarks,force_align=True) 
-  # xmin, ymin, xmax, ymax = xmin, ymin, xmax, ymax
+  xmin, ymin, xmax, ymax = xmin-5, ymin-5, xmax+5, ymax+5
   box_array = [[(xmin,ymin),(xmax,ymax)]]
   
   # middle box
