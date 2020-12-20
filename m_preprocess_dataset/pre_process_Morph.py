@@ -84,12 +84,12 @@ def detect_faces_and_landmarks(image):
   if img_face_count < 1:
     return 0,[],[] # no face found, so return 
 
-  xmin, ymin, xmax, ymax = face_rect_list[0].left() , face_rect_list[0].top(), face_rect_list[0].right(), face_rect_list[0].bottom() # face_rect is dlib.rectangle object, so extracting values from it
+  xmin, ymin, xmax, ymax = face_rect_list[0].rect.left() , face_rect_list[0].rect.top(), face_rect_list[0].rect.right(), face_rect_list[0].rect.bottom() # face_rect is dlib.rectangle object, so extracting values from it
   
   # make a landmarks_list of all faces detected in image
   lmarks_list = dlib.full_object_detections()
   for face_rect in face_rect_list:
-    lmarks_list.append(predictor(image, face_rect)) # getting landmarks as a list of objects
+    lmarks_list.append(predictor(image, face_rect.rect)) # getting landmarks as a list of objects
   
   return img_face_count,np.array([xmin, ymin, xmax, ymax]), lmarks_list
 
@@ -101,10 +101,10 @@ def loadData_preprocessData_and_makeDataFrame():
   # loop through meta.csv for all images
   for index,series in meta_dataframe.iterrows():
     image_path = series.full_path # get image path
-    if index == 0:
-      image_path = '/content/side.jpg'
-    if index == 1:
-      image_path = '/content/Data Scientist.jpg'
+    # if index == 0:
+    #   image_path = '/content/side.jpg'
+    # if index == 1:
+    #   image_path = '/content/Data Scientist.jpg'
 
     try:
       image = cv2.imread(image_path, cv2.IMREAD_COLOR)
@@ -115,26 +115,25 @@ def loadData_preprocessData_and_makeDataFrame():
       # found exactly 1 face, so now process it
       #########################CropFace + genBox###################################
       #extract_image_chips will crop faces from image according to size & padding and align them in upright position and return list of them
-      cropped_faces = dlib.get_face_chips(image, lmarks_list, padding=0.8)  # aligned face with padding 0.4 in papper
+      cropped_faces = dlib.get_face_chips(image, lmarks_list, padding=0.6)  # aligned face with padding 0.4 in papper
       # crop2 = dlib.get_face_chips(image, lmarks_list, padding=0.8,size=(64,64))  # aligned face with padding 0.4 in papper
       image = cropped_faces[0] # must be only 1 face, so getting it.
       _,face_rect_box, lmarks_list = detect_faces_and_landmarks(image) # Detect face from cropped image
       first_lmarks = lmarks_list[0] # getting first face's rectangle box and landmarks 
-      double_box = gen_equal_boundbox(face_rect_box,gap_margin = 30) # get 2 face boxes for nput into network, as reauired in paper
+      double_box = gen_boundbox(face_rect_box,first_lmarks) # get 2 face boxes for nput into network, as reauired in paper
       ####################################Save image to check #######################################
-      test_img = cropped_faces[0]
+      test_img = cropped_faces[0].copy()
       if index % 5000 == 0:
         for bbox in double_box:
           bbox = bbox
           h_min, w_min = bbox[0]
           h_max, w_max = bbox[1]
           cv2.rectangle(test_img, (h_min,w_min), (h_max,w_max),(255,0,0),2)
-          cv2.imwrite('/content/saved{}_original.jpg'.format(index),image)
-          print('test image saved /content/saved{}_original.jpg'.format(index))
+          cv2.imwrite('/content/saved{}_original.jpg'.format(index),test_img)
       ###########################################################################
       # detect face landmarks again from cropped & align face.  (as positions of lmarks are changed in cropped image)
-      if (double_box < 0).any():
-        raise Exception('Some part of face is out of image ')
+      # if (double_box < 0).any():
+      #   raise Exception('Some part of face is out of image ')
       face_pitch, face_yaw, face_roll = get_rotation_angle(image, first_lmarks) # gen face rotation for filtering
     except Exception as ee:        
       print('index ',index,': exption ',ee,series.full_path)
@@ -152,7 +151,7 @@ def loadData_preprocessData_and_makeDataFrame():
     
     # adding everything to list
     properties_list.append([image_path,series.age,series.gender,image_buffer,face_rect_box_serialized,trible_boxes_serialized,face_yaw,face_pitch,face_roll,face_landmarks_serialized])
-    if index%400 == 0:
+    if index%500 == 0:
       print(index,'images added processed')
   processed_dataset_df = pd.DataFrame(properties_list,columns=['image_path','age','gender','image','org_box','trible_box','yaw','pitch','roll','landmarks'])
   # some filtering on df
@@ -194,7 +193,7 @@ def rectify_data():
 ################################## GLOBAL PARAMS ##############################################
 
 #initiate face detector and predictor
-detector = dlib.get_frontal_face_detector()
+detector = dlib.cnn_face_detection_model_v1('/content/RP/detect/mmod_human_face_detector.dat')
 predictor = dlib.shape_predictor("/content/RP/detect/shape_predictor_68_face_landmarks.dat")
 
 # creating dummy DF, later will process all images to make it real df
