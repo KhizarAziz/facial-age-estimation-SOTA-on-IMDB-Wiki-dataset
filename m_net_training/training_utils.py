@@ -73,7 +73,8 @@ def gen_triple_face_box(box,landmarks,percent_margin=30):
   if right_margin != 0:
     if 0.66 < left_margin/right_margin < 1.55:
       xmin, ymin, xmax, ymax = evaluate_face_box(xmin, ymin, xmax, ymax, landmarks,force_align=True) 
-  xmin, ymin, xmax, ymax = xmin-5, ymin-5, xmax+5, ymax+5
+    else:
+      xmin, ymin, xmax, ymax = xmin-5, ymin-5, xmax+5, ymax+5
   box_array = [[(xmin,ymin),(xmax,ymax)]]
   
   # middle box
@@ -225,10 +226,8 @@ def img_and_age_data_generator(dataset_df,batch_size = 32, category=12, interval
 
       # print(len(two_point_ages_nparray[0]))
 
-      yield [img_nparray[:,0], img_nparray[:,1],img_nparray[:,2]], out # return batch
+      yield [img_nparray[:,2], img_nparray[:,1],img_nparray[:,0]], out # return batch
       start += batch_size # update start point, for next batch
-
-
 
 def image_enforcing(img, flag, contrast, bright, rotation):
     if flag & 1:  # trans hue
