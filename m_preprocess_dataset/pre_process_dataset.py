@@ -60,13 +60,12 @@ def detect_faces_and_landmarks(image):
   
   return img_face_count,np.array([xmin, ymin, xmax, ymax]), lmarks_list
 
-
-
 def loadData_preprocessData_and_makeDataFrame():
   properties_list = []
 
   for index,series in dataset_meta.iterrows():
-    image_path = series.full_path # get image path
+    image_path = dataset_base_path.joinpath(series.imgPath) # get image path
+    print(image_path)
     try:
       image = cv2.imread(image_path, cv2.IMREAD_COLOR)
       face_count,_,lmarks_list = detect_faces_and_landmarks(image) # Detect face & landmarks
@@ -82,18 +81,19 @@ def loadData_preprocessData_and_makeDataFrame():
       ####################################Save image to check #######################################
       test_img = cropped_faces[0].copy()
       if index % 5000 == 0:
-        for bbox in double_box:
-          bbox = bbox
-          h_min, w_min = bbox[0]
-          h_max, w_max = bbox[1]
-          cv2.rectangle(test_img, (h_min,w_min), (h_max,w_max),(255,0,0),2)
-          cv2.imwrite('/content/saved{}_original.jpg'.format(index),test_img)
+        cv2.imwrite('/content/saved{}_original.jpg'.format(index),test_img)
+        # for bbox in double_box:
+        #   bbox = bbox
+        #   h_min, w_min = bbox[0]
+        #   h_max, w_max = bbox[1]
+        #   cv2.rectangle(test_img, (h_min,w_min), (h_max,w_max),(255,0,0),2)
+        #   cv2.imwrite('/content/saved{}_original.jpg'.format(index),test_img)
       ###########################################################################
       # if (double_box < 0).any():
       #   raise Exception('Some part of face is out of image ')
-      face_pitch, face_yaw, face_roll = get_rotation_angle(image, first_lmarks) # gen face rotation for filtering
+      # face_pitch, face_yaw, face_roll = get_rotation_angle(image, first_lmarks) # gen face rotation for filtering
     except Exception as ee:        
-      print('index ',index,': exption ',ee,series.full_path)
+      print('index ',index,': exption ',ee)
       properties_list.append([np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan]) # add null dummy values to current row & skill this iteration
       continue
       
@@ -102,21 +102,19 @@ def loadData_preprocessData_and_makeDataFrame():
     image_buffer = buf.tostring()
     #dumping with `pickle` much faster than `json` (np.dumps is pickling)
     face_rect_box_serialized = face_rect_box.dumps()  # [xmin, ymin, xmax, ymax] : Returns the pickle(encoding to binary format (better than json)) of the array as a string. pickle.loads or numpy.loads will convert the string back to an array
-    trible_boxes_serialized = double_box.dumps() # 2 boxes of face as required in paper
     landmarks_list = np.array([[point.x,point.y] for point in first_lmarks.parts()]) # Same converting landmarks (face_detection_object) to array so can be converted to json
     face_landmarks_serialized = landmarks_list.dumps()#json.dumps(landmarks_list,indent = 2)  # y1..y5, x1..x5
     
     # adding everything to list
-    properties_list.append([image_path,series.age,series.gender,image_buffer,face_rect_box_serialized,trible_boxes_serialized,face_yaw,face_pitch,face_roll,face_landmarks_serialized])
+    properties_list.append([image_path,series.age,series.gender,image_buffer,face_rect_box_serialized,face_landmarks_serialized])
     if index%500 == 0:
       print(index,'images added processed')
-  processed_dataset_df = pd.DataFrame(properties_list,columns=['image_path','age','gender','image','org_box','trible_box','yaw','pitch','roll','landmarks'])
+  processed_dataset_df = pd.DataFrame(properties_list,columns=['image_path','age','gender','image','org_box','landmarks'])
   # some filtering on df
   processed_dataset_df = processed_dataset_df.dropna()
   processed_dataset_df = processed_dataset_df[(processed_dataset_df.age >= 0) & (processed_dataset_df.age <= 100)]
   
   return processed_dataset_df # returning now (just in case need to return), maybe later remove...
-
 
 
 # save processed dataset_df to feather format
@@ -147,7 +145,6 @@ def rectify_data():
     print(Dataset_DF.groupby(["age", "gender"]).agg(["count"]))
 
 ################################## GLOBAL PARAMS ##############################################
-
 #initiate face detector and predictor
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("/content/RP/detect/shape_predictor_68_face_landmarks.dat")
@@ -162,6 +159,6 @@ extra_padding = 0.55
 
 if __name__ == "__main__":
 
-    init_dataset_meta_csv() # convert meta.mat to meta.csv
+    # init_dataset_meta_csv() # convert meta.mat to meta.csv
     Dataset_DF = loadData_preprocessData_and_makeDataFrame()
-    save() # save preprocessed dataset as .feather in  dataset_directory_path
+    # save() # save preprocessed dataset as .feather in  dataset_directory_path
