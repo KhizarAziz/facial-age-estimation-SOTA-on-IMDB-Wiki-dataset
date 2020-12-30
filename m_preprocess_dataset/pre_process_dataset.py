@@ -51,12 +51,12 @@ def detect_faces_and_landmarks(image):
   if img_face_count < 1:
     return 0,[],[] # no face found, so return 
 
-  xmin, ymin, xmax, ymax = face_rect_list[0].rect.left() , face_rect_list[0].rect.top(), face_rect_list[0].rect.right(), face_rect_list[0].rect.bottom() # face_rect is dlib.rectangle object, so extracting values from it
+  xmin, ymin, xmax, ymax = face_rect_list[0].left() , face_rect_list[0].top(), face_rect_list[0].right(), face_rect_list[0].bottom() # face_rect is dlib.rectangle object, so extracting values from it
   
   # make a landmarks_list of all faces detected in image
   lmarks_list = dlib.full_object_detections()
   for face_rect in face_rect_list:
-    lmarks_list.append(predictor(image, face_rect.rect)) # getting landmarks as a list of objects
+    lmarks_list.append(predictor(image, face_rect)) # getting landmarks as a list of objects
   
   return img_face_count,np.array([xmin, ymin, xmax, ymax]), lmarks_list
 
@@ -64,8 +64,9 @@ def loadData_preprocessData_and_makeDataFrame():
   properties_list = []
 
   for index,series in dataset_meta.iterrows():
-    image_path = dataset_base_path.joinpath(series.imgPath) # get image path
-    print(image_path)
+    image_path = str(dataset_base_path.joinpath(series.imgPath)) # get image path
+    # print(image_path,type(image_path))
+    # break
     try:
       image = cv2.imread(image_path, cv2.IMREAD_COLOR)
       face_count,_,lmarks_list = detect_faces_and_landmarks(image) # Detect face & landmarks
@@ -93,7 +94,7 @@ def loadData_preprocessData_and_makeDataFrame():
       #   raise Exception('Some part of face is out of image ')
       # face_pitch, face_yaw, face_roll = get_rotation_angle(image, first_lmarks) # gen face rotation for filtering
     except Exception as ee:        
-      print('index ',index,': exption ',ee)
+      # print('index ',index,': exption ',ee)
       properties_list.append([np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan]) # add null dummy values to current row & skill this iteration
       continue
       
@@ -161,4 +162,4 @@ if __name__ == "__main__":
 
     # init_dataset_meta_csv() # convert meta.mat to meta.csv
     Dataset_DF = loadData_preprocessData_and_makeDataFrame()
-    # save() # save preprocessed dataset as .feather in  dataset_directory_path
+    save() # save preprocessed dataset as .feather in  dataset_directory_path
