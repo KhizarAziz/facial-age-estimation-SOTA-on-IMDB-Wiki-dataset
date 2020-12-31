@@ -95,7 +95,7 @@ def loadData_preprocessData_and_makeDataFrame():
       # face_pitch, face_yaw, face_roll = get_rotation_angle(image, first_lmarks) # gen face rotation for filtering
     except Exception as ee:        
       # print('index ',index,': exption ',ee)
-      properties_list.append([np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan]) # add null dummy values to current row & skill this iteration
+      properties_list.append([np.nan,np.nan,np.nan,np.nan,np.nan,np.nan]) # add null dummy values to current row & skill this iteration
       continue
       
     # everything processed succefuly, now serialize values and save them
@@ -155,7 +155,9 @@ Dataset_DF = pd.DataFrame(columns=["age", "gender", "image", "org_box", "trible_
 
 # define all parameters here
 dataset_base_path = Path('/content/RP/dataset/')
+dataset_name = 'mine-data'
 dataset_meta = pd.read_csv('/content/RP/dataset/Dataset/dataset-meta.csv')
+dataset_meta = dataset_meta[0:5000]
 extra_padding = 0.55
 
 if __name__ == "__main__":
