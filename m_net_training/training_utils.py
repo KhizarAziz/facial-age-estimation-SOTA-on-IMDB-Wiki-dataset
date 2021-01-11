@@ -66,7 +66,7 @@ def gen_boundbox(box, landmark):
     # getting 3 boxes for face, as required in paper... i.e feed 3 different sized images to network (R,G,B) 
     xmin, ymin, xmax, ymax = box # box is [ymin, xmin, ymax, xmax]
     w, h = xmax - xmin, ymax - ymin
-    nose_x, nose_y = (landmark.parts()[30].x, landmark.parts()[30].y) # calculating nose center point, so the triple boxes will be cropped according to nose point
+    nose_x, nose_y = (landmark[30][0], landmark[30][1]) # calculating nose center point, so the triple boxes will be cropped according to nose point
     w_h_margin = abs(w - h)
     top2nose = nose_y - ymin
     # Contains the smallest frame
