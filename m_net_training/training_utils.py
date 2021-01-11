@@ -61,6 +61,22 @@ def evaluate_face_box(x1,y1,x2,y2,landmarks, force_align =False):
 
   return x1,y1,x2,y2
 
+
+def gen_boundbox(box, landmark):
+    # getting 3 boxes for face, as required in paper... i.e feed 3 different sized images to network (R,G,B) 
+    xmin, ymin, xmax, ymax = box # box is [ymin, xmin, ymax, xmax]
+    w, h = xmax - xmin, ymax - ymin
+    nose_x, nose_y = (landmark.parts()[30].x, landmark.parts()[30].y) # calculating nose center point, so the triple boxes will be cropped according to nose point
+    w_h_margin = abs(w - h)
+    top2nose = nose_y - ymin
+    # Contains the smallest frame
+    return np.array([
+        [(xmin - w_h_margin, ymin - w_h_margin), (xmax + w_h_margin, ymax + w_h_margin)],  # out
+        [(nose_x - top2nose, nose_y - top2nose), (nose_x + top2nose, nose_y + top2nose)],  # middle
+        [(nose_x - w//2, nose_y - w//2), (nose_x + w//2, nose_y + w//2)]  # inner box
+    ])
+
+
 def gen_triple_face_box(box,landmarks,percent_margin=30):
   xmin, ymin, xmax, ymax = box 
   h = xmax - xmin
@@ -116,8 +132,6 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   # read image from buffer then decode
   img = np.frombuffer(row["image"], np.uint8)
   img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-
-
   #add random noise	
   if random_erasing:	  # normalize to the range 0-1
     img = random_img_erasing(img,dropout=dropout)
@@ -141,7 +155,8 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   # get trible box (out,middle,inner) and crop image from these boxes then
   face_lm = pickle.loads(row['landmarks'],encoding="bytes")
   face_box = pickle.loads(row['org_box'],encoding="bytes")
-  triple_box= gen_triple_face_box(face_box,face_lm,percent_margin=-10)
+  triple_box = gen_boundbox(face_box,face_lm)
+  # triple_box= gen_triple_face_box(face_box,face_lm,percent_margin=-10)
 
   #if contains a negative value, add padding to image.
   # if triple_box.min() < 0:
