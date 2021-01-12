@@ -61,6 +61,32 @@ def evaluate_face_box(x1,y1,x2,y2,landmarks, force_align =False):
 
   return x1,y1,x2,y2
 
+def gen_equal_boundbox(box,gap_margin=20):
+    # getting 3 boxes for face, as required in paper... i.e feed 3 different sized images to network (R,G,B) 
+    xmin, ymin, xmax, ymax = box # box is [ymin, xmin, ymax, xmax]
+    w, h = xmax - xmin, ymax - ymin
+
+    box_array = [[(xmin,ymin),(xmax,ymax)]] # inner-box
+
+    # middle box
+    margin = int(h * gap_margin/100) # 15% margin
+    new_X =  xmin - margin 
+    new_Y = ymin - margin
+    new_X2 = xmax + margin 
+    new_Y2 = ymax + margin 
+    box_array.append([(new_X,new_Y),(new_X2,new_Y2)])
+
+    # outer box
+    margin = int(margin*2) # 30% margin
+    new_X =  xmin - margin 
+    new_Y = ymin - margin
+    new_X2 = xmax + margin 
+    new_Y2 = ymax + margin 
+    box_array.append([(new_X,new_Y),(new_X2,new_Y2)])
+
+    return np.array(box_array) 
+
+
 
 def gen_boundbox(box, landmark):
     # getting 3 boxes for face, as required in paper... i.e feed 3 different sized images to network (R,G,B) 
@@ -155,14 +181,14 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   # get trible box (out,middle,inner) and crop image from these boxes then
   face_lm = pickle.loads(row['landmarks'],encoding="bytes")
   face_box = pickle.loads(row['org_box'],encoding="bytes")
-  triple_box = gen_boundbox(face_box,face_lm)
+  triple_box = gen_equal_boundbox(face_box,gap_margin=15)
   # triple_box= gen_triple_face_box(face_box,face_lm,percent_margin=-10)
 
   #if contains a negative value, add padding to image.
   # if triple_box.min() < 0:
   #   padding = np.abs(triple_box.min()) + 1
   # else:
-  padding = 20
+  padding = 50
   
   img = cv2.copyMakeBorder(img, padding, padding, padding, padding, cv2.BORDER_CONSTANT)
   tripple_cropped_imgs = []
@@ -241,7 +267,7 @@ def img_and_age_data_generator(dataset_df,batch_size = 32, category=12, interval
 
       # print(len(two_point_ages_nparray[0]))
 
-      yield [img_nparray[:,2], img_nparray[:,1],img_nparray[:,0]], out # return batch
+      yield [img_nparray[:,0], img_nparray[:,1],img_nparray[:,2]], out # return batch
       start += batch_size # update start point, for next batch
 
 def image_enforcing(img, flag, contrast, bright, rotation):
