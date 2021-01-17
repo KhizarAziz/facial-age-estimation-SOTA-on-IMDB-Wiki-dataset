@@ -32,7 +32,18 @@ def get_margin_right_left(landmarks,gap_margin):
   left_margin = round(gap_margin * percent_left/100)
   #confirmation of left+right == total_margin
   right_margin = gap_margin-left_margin
-  return right_margin,left_margin
+
+  # if right_margin > left_margin:
+  #   left_margin = 0
+  #   # right_margin += 5
+  # if right_margin < left_margin:
+  #   right_margin = 0
+    # left_margin += 5
+
+  if gap_margin < 0: # nagtive margin means inner-outer
+    return right_margin,left_margin
+  else: # positive or 0 margine means outer-inner
+    return left_margin,right_margin 
 
 def get_margin_up_down_split(gap_margin,down_split=0.3):
   # calculate margin values for up & down side.
@@ -61,7 +72,7 @@ def evaluate_face_box(x1,y1,x2,y2,landmarks, force_align =False):
 
   return x1,y1,x2,y2
 
-def gen_equal_boundbox(box,gap_margin=20):
+def gen_equal_boundbox(box,percent_margin=20):
     # getting 3 boxes for face, as required in paper... i.e feed 3 different sized images to network (R,G,B) 
     xmin, ymin, xmax, ymax = box # box is [ymin, xmin, ymax, xmax]
     w, h = xmax - xmin, ymax - ymin
@@ -69,7 +80,7 @@ def gen_equal_boundbox(box,gap_margin=20):
     box_array = [[(xmin,ymin),(xmax,ymax)]] # inner-box
 
     # middle box
-    margin = int(h * gap_margin/100) # 15% margin
+    margin = int(h * percent_margin/100) # 15% margin
     new_X =  xmin - margin 
     new_Y = ymin - margin
     new_X2 = xmax + margin 
@@ -154,7 +165,7 @@ def two_point(age_label, category, interval=10, elips=0.000001):
     return np.array(age_split(age_label))
 
 
-def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enforcing=False):
+def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enforcing=False,pose_aware_cropper=True,gap_margin=10):
   # read image from buffer then decode
   img = np.frombuffer(row["image"], np.uint8)
   img = cv2.imdecode(img, cv2.IMREAD_COLOR)
@@ -181,14 +192,16 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   # get trible box (out,middle,inner) and crop image from these boxes then
   face_lm = pickle.loads(row['landmarks'],encoding="bytes")
   face_box = pickle.loads(row['org_box'],encoding="bytes")
-  triple_box = gen_equal_boundbox(face_box,gap_margin=15)
-  # triple_box= gen_triple_face_box(face_box,face_lm,percent_margin=-10)
+  if pose_aware_cropper:
+    triple_box= gen_triple_face_box(face_box,face_lm,percent_margin=gap_margin)
+  else:
+    triple_box = gen_equal_boundbox(face_box,percent_margin=gap_margin)
 
   #if contains a negative value, add padding to image.
   # if triple_box.min() < 0:
   #   padding = np.abs(triple_box.min()) + 1
   # else:
-  padding = 50
+  padding = gap_margin+30
   
   img = cv2.copyMakeBorder(img, padding, padding, padding, padding, cv2.BORDER_CONSTANT)
   tripple_cropped_imgs = []
@@ -241,7 +254,7 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   return cascad_imgs    
 
 
-def img_and_age_data_generator(dataset_df,batch_size = 32, category=12, interval=10,imgs_shape =(64,64), random_erasing=False,random_enforcing=False, dropout = 0.2):
+def img_and_age_data_generator(dataset_df,pose_aware_cropper,gap_margin,batch_size = 32, category=12, interval=10,imgs_shape =(64,64), random_erasing=False,random_enforcing=False, dropout = 0.2):
   dataset_df = dataset_df.reset_index(drop=True)
   df_count = len(dataset_df)
   while True:
@@ -255,7 +268,7 @@ def img_and_age_data_generator(dataset_df,batch_size = 32, category=12, interval
       two_point_ages = [] # list for 2_point_rep of ages
       for index,row in current_batch.iterrows(): #iterate over batch to load & transform each img
         # load and transform image
-        img = image_transform(row, dropout=dropout,target_img_shape=imgs_shape,random_erasing=random_erasing,random_enforcing=random_enforcing)
+        img = image_transform(row, dropout=dropout,target_img_shape=imgs_shape,random_erasing=random_erasing,random_enforcing=random_enforcing,pose_aware_cropper=pose_aware_cropper,gap_margin=gap_margin)
         img_List.append(img)
         # make 2_point_represenation(list) of age
         two_point_rep = two_point(int(row.age), category, interval)
