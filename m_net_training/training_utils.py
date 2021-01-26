@@ -88,7 +88,7 @@ def gen_equal_boundbox(box,percent_margin=20):
     box_array.append([(new_X,new_Y),(new_X2,new_Y2)])
 
     # outer box
-    margin = int(margin*2) # 30% margin
+    margin = int(margin*-1.3) # 30% margin
     new_X =  xmin - margin 
     new_Y = ymin - margin
     new_X2 = xmax + margin 
@@ -137,10 +137,10 @@ def gen_triple_face_box(box,landmarks,percent_margin=30):
   new_Y = int(ymin - up_margin)
   new_X2 = int(xmax + right_margin)
   new_Y2 = int(ymax + down_margin)
-  new_X,new_Y,new_X2,new_Y2 = evaluate_face_box(new_X,new_Y,new_X2,new_Y2,landmarks)
+  new_X,new_Y,new_X2,new_Y2 = evaluate_face_box(new_X,new_Y,new_X2,new_Y2,landmarks,force_align=True)
   box_array.append([(new_X,new_Y),(new_X2,new_Y2)])
   # outer box
-  gap_margin = gap_margin*2 # because 3rd box will be further outside
+  gap_margin = gap_margin*-1.3 # because 3rd box will be further outside
   left_margin,right_margin = get_margin_right_left(landmarks,gap_margin) # calculate gap_margin right and left
   up_margin , down_margin  = get_margin_up_down_split(gap_margin)
   new_X = int(xmin - left_margin)
