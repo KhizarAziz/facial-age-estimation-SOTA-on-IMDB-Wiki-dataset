@@ -201,7 +201,7 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
   # if triple_box.min() < 0:
   #   padding = np.abs(triple_box.min()) + 1
   # else:
-  padding = gap_margin+30
+  padding = gap_margin+50
   
   img = cv2.copyMakeBorder(img, padding, padding, padding, padding, cv2.BORDER_CONSTANT)
   tripple_cropped_imgs = []
@@ -213,7 +213,10 @@ def image_transform(row,dropout,target_img_shape,random_erasing=False,random_enf
     h_max, w_max = box[1] #xmax, ymax
     # print('img shape {} & trible box {} '.format(img.shape,box))
     # crop image according to box size and add to list
-    triple_box_cropped = cv2.resize(img_new[w_min+padding:w_max+padding, h_min+padding: h_max+padding], target_img_shape) # cropping image
+    try:
+      triple_box_cropped = cv2.resize(img_new[w_min+padding:w_max+padding, h_min+padding: h_max+padding], target_img_shape) # cropping image
+    except:  
+      triple_box_cropped = cv2.resize(img_new, target_img_shape) # cropping image
     # triple_box_cropped = triple_box_cropped # resize according to size we want
     tripple_cropped_imgs.append(triple_box_cropped)
   
