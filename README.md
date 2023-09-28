@@ -1,2 +1,2 @@
-# Research_Project
-Doing research experiments in this project.
+# Facial Age Estimation Research Project
+This repo contains A full fledged pipeline for doing facial age estimation using mulitple datasets.
